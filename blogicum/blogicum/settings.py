@@ -150,5 +150,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
 LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'blog:profile'
 
 MEDIA_ROOT = BASE_DIR / 'media'
