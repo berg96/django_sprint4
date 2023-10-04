@@ -10,10 +10,10 @@ class PublishedModel(models.Model):
     is_published = models.BooleanField(
         default=True,
         verbose_name='Опубликовано',
-        help_text='Снимите галочку, чтобы скрыть публикацию.')
+        help_text='Снимите галочку, чтобы скрыть публикацию.',
+    )
     created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено'
+        auto_now_add=True, verbose_name='Добавлено'
     )
 
     class Meta:
@@ -37,8 +37,10 @@ class Category(PublishedModel):
     slug = models.SlugField(
         unique=True,
         verbose_name='Идентификатор',
-        help_text=('Идентификатор страницы для URL; '
-                   'разрешены символы латиницы, цифры, дефис и подчёркивание.')
+        help_text=(
+            'Идентификатор страницы для URL; '
+            'разрешены символы латиницы, цифры, дефис и подчёркивание.'
+        ),
     )
 
     class Meta:
@@ -54,26 +56,26 @@ class Post(PublishedModel):
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
-        help_text=('Если установить дату и время в будущем'
-                   ' — можно делать отложенные публикации.')
+        help_text=(
+            'Если установить дату и время в будущем'
+            ' — можно делать отложенные публикации.'
+        ),
     )
     author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор публикации'
+        User, on_delete=models.CASCADE, verbose_name='Автор публикации'
     )
     location = models.ForeignKey(
         Location,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        verbose_name='Местоположение'
+        verbose_name='Местоположение',
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        verbose_name='Категория'
+        verbose_name='Категория',
     )
 
     class Meta:
@@ -83,14 +85,16 @@ class Post(PublishedModel):
         default_related_name = 'posts'
 
     def __str__(self):
-        return (f'{self.title[:20]}/{self.text[:20]}/'
-                f'{self.author.username[:20]}'
-                f'/{self.location.name[:20]}/{self.category.title[:20]}')
+        return (
+            f'{self.title[:20]}/{self.text[:20]}/'
+            f'{self.author.username[:20]}'
+            f'/{self.location.name[:20]}/{self.category.title[:20]}'
+        )
 
     @classmethod
     def published(cls):
         return cls.objects.filter(
             is_published=True,
             category__is_published=True,
-            pub_date__lte=datetime.now()
+            pub_date__lte=datetime.now(),
         )
