@@ -10,6 +10,7 @@ from django.views.generic import (
 from django.contrib.auth import get_user_model
 
 from blog.models import Post, Category
+from .forms import PostForm
 
 User = get_user_model()
 
@@ -49,7 +50,16 @@ class ProfileDetailView(DetailView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context['post_list'] = self.object.posts.published().select_related(
+        context['page_obj'] = self.object.posts.select_related(
             'location', 'category', 'author'
         )
         return context
+
+
+class PostCreateView(CreateView):
+    model = Post
+    form_class = PostForm
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)

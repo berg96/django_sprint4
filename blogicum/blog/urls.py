@@ -11,14 +11,15 @@ urlpatterns = [
         views.PostDetailView.as_view(),
         name='post_detail',
     ),
+    path('post/create/', views.PostCreateView.as_view(), name='create_post'),
     path(
-        'category/<slug:category_slug>/',
+        'category/<slug:slug>/',
         views.CategoryListView.as_view(),
         name='category_posts',
     ),
     path(
         'profile/<slug:username>/',
         views.ProfileDetailView.as_view(),
-        name='profile_user',
+        name='profile',
     ),
 ]
