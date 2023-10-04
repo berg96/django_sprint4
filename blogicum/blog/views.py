@@ -7,8 +7,11 @@ from django.views.generic import (
     DeleteView,
     DetailView,
 )
+from django.contrib.auth import get_user_model
 
 from blog.models import Post, Category
+
+User = get_user_model()
 
 
 class IndexListView(ListView):
@@ -32,6 +35,17 @@ class CategoryListView(ListView):
     model = Category
     template_name = 'blog/category.html'
     # filter(category__slug=category_slug)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['post_list'] = self.object.posts.published().select_related(
+            'location', 'category', 'author'
+        )
+        return context
+
+
+class ProfileDetailView(DetailView):
+    model = User
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
