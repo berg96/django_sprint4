@@ -1,46 +1,41 @@
+from typing import Any
 from django.shortcuts import render, get_object_or_404
+from django.views.generic import (
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+    DetailView,
+)
 
 from blog.models import Post, Category
 
 
-def index(request):
-    return render(
-        request,
-        'blog/index.html',
-        {
-            'post_list': Post.published().select_related(
-                'location', 'category', 'author'
-            )[0:5]
-        },
+class IndexListView(ListView):
+    model = Post
+    paginate_by = 10
+    template_name = 'blog/index.html'
+    queryset = Post.published().select_related(
+        'location', 'category', 'author'
     )
 
 
-def post_detail(request, post_id):
-    return render(
-        request,
-        'blog/detail.html',
-        {
-            'post': get_object_or_404(
-                Post.published().select_related(
-                    'location', 'category', 'author'
-                ),
-                pk=post_id,
-            )
-        },
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/detail.html'
+    queryset = Post.published().select_related(
+        'location', 'category', 'author'
     )
 
 
-def category_posts(request, category_slug):
-    category = get_object_or_404(
-        Category, slug=category_slug, is_published=True
-    )
-    return render(
-        request,
-        'blog/category.html',
-        {
-            'category': category,
-            'post_list': Post.published()
-            .select_related('location', 'category', 'author')
-            .filter(category__slug=category_slug),
-        },
-    )
+class CategoryListView(ListView):
+    model = Category
+    template_name = 'blog/category.html'
+    # filter(category__slug=category_slug)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['post_list'] = self.object.posts.published().select_related(
+            'location', 'category', 'author'
+        )
+        return context
