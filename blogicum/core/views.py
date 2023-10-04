@@ -1,3 +1,5 @@
 from django.shortcuts import render
 
-# Create your views here.
+
+def page_not_found(request, exception):
+    return render(request, 'pages/404.html', status=404)

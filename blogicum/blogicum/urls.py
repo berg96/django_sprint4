@@ -23,6 +23,8 @@ urlpatterns = [
     path('', include('blog.urls', namespace='blog')),
 ]
 
+handler404 = 'core.views.page_not_found'
+
 if settings.DEBUG:
     import debug_toolbar
 
