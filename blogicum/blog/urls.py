@@ -13,6 +13,14 @@ urlpatterns = [
     ),
     path('post/create/', views.PostCreateView.as_view(), name='create_post'),
     path(
+        'post/<int:pk>/edit/', views.PostUpdateView.as_view(), name='edit_post'
+    ),
+    path(
+        'posts/<int:pk>/delete/',
+        views.PostDeleteView.as_view(),
+        name='delete_post',
+    ),
+    path(
         'category/<slug:slug>/',
         views.CategoryListView.as_view(),
         name='category_posts',
@@ -21,5 +29,13 @@ urlpatterns = [
         'profile/<slug:username>/',
         views.ProfileDetailView.as_view(),
         name='profile',
+    ),
+    path(
+        'profile/edit/', views.ProfileUpdateView.as_view(), name='edit_profile'
+    ),
+    path(
+        'posts/<int:pk>/comment/',
+        views.CommentCreateView.as_view(),
+        name='add_comment',
     ),
 ]
