@@ -1,7 +1,9 @@
 from typing import Any
 from django import http
+from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
 from django.http import HttpResponse
+from django.db.models import Count
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -28,49 +30,32 @@ class IndexListView(ListView):
     )
 
 
+class CategoryListView(ListView):
+    model = Post
+    template_name = 'blog/category.html'
+    paginate_by = 10
+
+    def get_object(self):
+        return get_object_or_404(Category, slug=self.kwargs['category_slug'])
+
+    def get_queryset(self) -> QuerySet[Any]:
+        return self.get_object().posts.all()
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['category'] = self.get_object()
+        context['page_obj'] = self.get_queryset()
+        return context
+
+
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
-    queryset = Post.published().select_related(
-        'location', 'category', 'author'
-    )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['form'] = CommentForm()
         context['comments'] = self.object.comments.select_related('author')
-        return context
-
-
-class CategoryListView(ListView):
-    model = Category
-    template_name = 'blog/category.html'
-    # filter(category__slug=category_slug)
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context['post_list'] = self.object.posts.published().select_related(
-            'location', 'category', 'author'
-        )
-        return context
-
-
-class ProfileDetailView(DetailView):
-    model = User
-    slug_url_kwarg = 'username'
-    slug_field = 'username'
-    template_name = 'blog/profile.html'
-
-    def dispatch(
-        self, request: http.HttpRequest, *args: Any, **kwargs: Any
-    ) -> http.HttpResponse:
-        get_object_or_404(User, username=kwargs['username'])
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context['page_obj'] = self.object.posts.select_related('author')
-        context['form'] = CommentForm()
         return context
 
 
@@ -89,10 +74,6 @@ class PostCreateView(CreateView):
         )
 
 
-class ProfileUpdateView(UpdateView):
-    pass
-
-
 class PostUpdateView(UpdateView):
     model = Post
     form_class = PostForm
@@ -104,16 +85,20 @@ class PostUpdateView(UpdateView):
         get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_success_url(self) -> str:
+        return reverse('blog:post_detail', kwargs={'pk': self.object.id})
+
 
 class PostDeleteView(DeleteView):
     model = Post
     success_url = reverse_lazy('blog:index')
     template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
 
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+        get_object_or_404(Post, pk=kwargs['post_id'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -135,3 +120,42 @@ class CommentCreateView(CreateView):
 
     def get_success_url(self) -> str:
         return reverse('blog:post_detail', kwargs={'pk': self.note.pk})
+
+
+class CommentUpdateView(UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment.html'
+
+    def dispatch(
+        self, request: http.HttpRequest, *args: Any, **kwargs: Any
+    ) -> http.HttpResponse:
+        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+
+class CommentDeleteView(DeleteView):
+    pass
+
+
+class ProfileDetailView(DetailView):
+    model = User
+    slug_url_kwarg = 'username'
+    slug_field = 'username'
+    template_name = 'blog/profile.html'
+
+    def dispatch(
+        self, request: http.HttpRequest, *args: Any, **kwargs: Any
+    ) -> http.HttpResponse:
+        get_object_or_404(User, username=kwargs['username'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['page_obj'] = self.object.posts.select_related('author')
+        context['form'] = CommentForm()
+        return context
+
+
+class ProfileUpdateView(UpdateView):
+    pass
