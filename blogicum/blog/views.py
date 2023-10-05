@@ -1,10 +1,12 @@
 from typing import Any
 from django import http
+from django.db import models
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.db.models import Count
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import redirect, render, get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView,
@@ -59,7 +61,7 @@ class PostDetailView(DetailView):
         return context
 
 
-class PostCreateView(CreateView):
+class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
@@ -74,7 +76,7 @@ class PostCreateView(CreateView):
         )
 
 
-class PostUpdateView(UpdateView):
+class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
@@ -89,11 +91,14 @@ class PostUpdateView(UpdateView):
         return reverse('blog:post_detail', kwargs={'pk': self.object.id})
 
 
-class PostDeleteView(DeleteView):
+class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     success_url = reverse_lazy('blog:index')
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
+    queryset = Post.published().select_related(
+        'location', 'category', 'author'
+    )
 
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
@@ -101,8 +106,15 @@ class PostDeleteView(DeleteView):
         get_object_or_404(Post, pk=kwargs['post_id'], author=request.user)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        post = self.get_object()
+        form = PostForm(instance=post)
+        context['form'] = form
+        return context
 
-class CommentCreateView(CreateView):
+
+class CommentCreateView(LoginRequiredMixin, CreateView):
     model = Comment
     form_class = CommentForm
     note = None
@@ -122,20 +134,43 @@ class CommentCreateView(CreateView):
         return reverse('blog:post_detail', kwargs={'pk': self.note.pk})
 
 
-class CommentUpdateView(UpdateView):
+class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
 
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        get_object_or_404(Comment, pk=kwargs['pk'], author=request.user)
+        get_object_or_404(
+            Comment, pk=kwargs['comment_id'], author=request.user
+        )
         return super().dispatch(request, *args, **kwargs)
 
+    def get_success_url(self) -> str:
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
-class CommentDeleteView(DeleteView):
-    pass
+
+class CommentDeleteView(LoginRequiredMixin, DeleteView):
+    model = Comment
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        get_object_or_404(
+            Comment, pk=kwargs['comment_id'], author=request.user
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self) -> str:
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
 
 class ProfileDetailView(DetailView):
@@ -152,10 +187,10 @@ class ProfileDetailView(DetailView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        context['profile'] = self.get_object()
         context['page_obj'] = self.object.posts.select_related('author')
-        context['form'] = CommentForm()
         return context
 
 
-class ProfileUpdateView(UpdateView):
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     pass
