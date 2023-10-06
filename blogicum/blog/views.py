@@ -22,6 +22,7 @@ from django.contrib.auth import get_user_model
 
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm, UserUpdateForm
+from .utils import published
 
 User = get_user_model()
 
@@ -30,8 +31,11 @@ class IndexListView(ListView):
     model = Post
     paginate_by = 10
     template_name = 'blog/index.html'
-    queryset = Post.published().select_related(
-        'location', 'category', 'author'
+    queryset = (
+        Post.published()
+        .select_related('location', 'category', 'author')
+        .annotate(comment_count=Count('comment'))
+        .order_by('-pub_date')
     )
 
 
@@ -54,6 +58,8 @@ class CategoryListView(ListView):
             Post.published()
             .select_related('location', 'category', 'author')
             .filter(category__slug=self.category.slug)
+            .annotate(comment_count=Count('comment'))
+            .order_by('-pub_date')
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -69,7 +75,7 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['form'] = CommentForm()
-        context['comments'] = self.object.comments.select_related('author')
+        context['comments'] = self.object.comment.select_related('author')
         return context
 
 
@@ -103,16 +109,6 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
             )
         return super().dispatch(request, *args, **kwargs)
 
-    # def get(
-    #     self, request: HttpRequest, *args: str, **kwargs: Any
-    # ) -> HttpResponse:
-    #     post = self.get_object()
-    #     if post.author != request.user:
-    #         return HttpResponseRedirect(
-    #             reverse('blog:post_detail', kwargs={'pk': post.id})
-    #         )
-    #     return super().get(request, *args, **kwargs)
-
     def get_success_url(self) -> str:
         return reverse('blog:post_detail', kwargs={'pk': self.object.id})
 
@@ -122,20 +118,19 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy('blog:index')
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
-    queryset = Post.published().select_related(
-        'location', 'category', 'author'
-    )
+    note = None
 
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        get_object_or_404(Post, pk=kwargs['post_id'], author=request.user)
+        self.note = get_object_or_404(
+            Post, pk=kwargs['post_id'], author=request.user
+        )
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        post = self.get_object()
-        form = PostForm(instance=post)
+        form = PostForm(instance=self.note)
         context['form'] = form
         return context
 
@@ -204,19 +199,30 @@ class ProfileDetailView(DetailView):
     slug_url_kwarg = 'username'
     slug_field = 'username'
     template_name = 'blog/profile.html'
+    profile = None
 
-    def dispatch(
-        self, request: http.HttpRequest, *args: Any, **kwargs: Any
-    ) -> http.HttpResponse:
-        get_object_or_404(User, username=kwargs['username'])
-        return super().dispatch(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        if self.profile is None:
+            self.profile = get_object_or_404(
+                User, username=self.kwargs['username']
+            )
+        return self.profile
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
-        context['profile'] = self.get_object()
+        context['profile'] = self.profile
+        page_obj = (
+            Post.objects.select_related('location', 'category', 'author')
+            .filter(author=self.profile)
+            .annotate(comment_count=Count('comment'))
+            .order_by('-pub_date')
+        )
+        if self.profile != self.request.user:
+            page_obj = published(page_obj)
         context['page_obj'] = Paginator(
-            self.object.posts.select_related('author'), 10
+            page_obj,
+            10,
         ).get_page(self.request.GET.get('page'))
         return context
 
