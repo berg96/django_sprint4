@@ -211,6 +211,6 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         return reverse('blog:profile', args=(self.request.user.username,))
 
 
-class EditProfileRedirectView(View):
+class EditProfileRedirectView(LoginRequiredMixin, View):
     def get(self, request):
         return redirect('blog:edit_profile_with_name', request.user.username)
