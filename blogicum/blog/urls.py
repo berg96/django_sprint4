@@ -43,11 +43,18 @@ urlpatterns = [
         name='delete_comment',
     ),
     path(
+        'profile/edit/',
+        views.EditProfileRedirectView.as_view(),
+        name='edit_profile',
+    ),
+    path(
+        'profile/<slug:username>/edit/',
+        views.ProfileUpdateView.as_view(),
+        name='edit_profile_with_name',
+    ),
+    path(
         'profile/<slug:username>/',
         views.ProfileDetailView.as_view(),
         name='profile',
-    ),
-    path(
-        'profile/edit/', views.ProfileUpdateView.as_view(), name='edit_profile'
     ),
 ]

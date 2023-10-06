@@ -7,7 +7,9 @@ from django.http import HttpRequest, HttpResponse
 from django.db.models import Count
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import UserChangeForm
 from django.urls import reverse, reverse_lazy
+from django.views import View
 from django.views.generic import (
     ListView,
     CreateView,
@@ -18,7 +20,7 @@ from django.views.generic import (
 from django.contrib.auth import get_user_model
 
 from .models import Post, Category, Comment
-from .forms import PostForm, CommentForm
+from .forms import PostForm, CommentForm, UserUpdateForm
 
 User = get_user_model()
 
@@ -193,4 +195,22 @@ class ProfileDetailView(DetailView):
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    pass
+    model = User
+    form_class = UserUpdateForm
+    template_name = 'blog/user.html'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
+
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        get_object_or_404(User, username=kwargs['username'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self) -> str:
+        return reverse('blog:profile', args=(self.request.user.username,))
+
+
+class EditProfileRedirectView(View):
+    def get(self, request):
+        return redirect('blog:edit_profile_with_name', request.user.username)
