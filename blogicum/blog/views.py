@@ -93,21 +93,25 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
-    # def dispatch(
-    #     self, request: http.HttpRequest, *args: Any, **kwargs: Any
-    # ) -> http.HttpResponse:
-    #     get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
-    #     return super().dispatch(request, *args, **kwargs)
-
-    def get(
-        self, request: HttpRequest, *args: str, **kwargs: Any
-    ) -> HttpResponse:
-        post = self.get_object()
+    def dispatch(
+        self, request: http.HttpRequest, *args: Any, **kwargs: Any
+    ) -> http.HttpResponse:
+        post = get_object_or_404(Post, pk=kwargs['pk'])
         if post.author != request.user:
             return HttpResponseRedirect(
                 reverse('blog:post_detail', kwargs={'pk': post.id})
             )
-        return super().get(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
+
+    # def get(
+    #     self, request: HttpRequest, *args: str, **kwargs: Any
+    # ) -> HttpResponse:
+    #     post = self.get_object()
+    #     if post.author != request.user:
+    #         return HttpResponseRedirect(
+    #             reverse('blog:post_detail', kwargs={'pk': post.id})
+    #         )
+    #     return super().get(request, *args, **kwargs)
 
     def get_success_url(self) -> str:
         return reverse('blog:post_detail', kwargs={'pk': self.object.id})
