@@ -1,5 +1,6 @@
 from typing import Any
 from django import http
+from django.core.paginator import Paginator
 from django.db import models
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
@@ -38,17 +39,22 @@ class CategoryListView(ListView):
     model = Post
     template_name = 'blog/category.html'
     paginate_by = 10
+    category = None
 
-    def get_object(self):
-        return get_object_or_404(Category, slug=self.kwargs['category_slug'])
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        self.category = get_object_or_404(
+            Category, slug=self.kwargs['category_slug']
+        )
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return self.get_object().posts.all()
+        return self.category.posts.all()
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context['category'] = self.get_object()
-        context['page_obj'] = self.get_queryset()
+        context['category'] = self.category
         return context
 
 
@@ -189,8 +195,11 @@ class ProfileDetailView(DetailView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
         context['profile'] = self.get_object()
-        context['page_obj'] = self.object.posts.select_related('author')
+        context['page_obj'] = Paginator(
+            self.object.posts.select_related('author'), 10
+        ).get_page(self.request.GET.get('page'))
         return context
 
 
