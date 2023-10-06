@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.db import models
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.db.models import Count
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -50,7 +50,11 @@ class CategoryListView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return self.category.posts.all()
+        return (
+            Post.published()
+            .select_related('location', 'category', 'author')
+            .filter(category__slug=self.category.slug)
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -89,11 +93,21 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
-    def dispatch(
-        self, request: http.HttpRequest, *args: Any, **kwargs: Any
-    ) -> http.HttpResponse:
-        get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
-        return super().dispatch(request, *args, **kwargs)
+    # def dispatch(
+    #     self, request: http.HttpRequest, *args: Any, **kwargs: Any
+    # ) -> http.HttpResponse:
+    #     get_object_or_404(Post, pk=kwargs['pk'], author=request.user)
+    #     return super().dispatch(request, *args, **kwargs)
+
+    def get(
+        self, request: HttpRequest, *args: str, **kwargs: Any
+    ) -> HttpResponse:
+        post = self.get_object()
+        if post.author != request.user:
+            return HttpResponseRedirect(
+                reverse('blog:post_detail', kwargs={'pk': post.id})
+            )
+        return super().get(request, *args, **kwargs)
 
     def get_success_url(self) -> str:
         return reverse('blog:post_detail', kwargs={'pk': self.object.id})
