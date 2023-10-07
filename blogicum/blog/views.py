@@ -120,7 +120,7 @@ class PostUpdateView(PostMixin, LoginRequiredMixin, UpdateView):
         return reverse('blog:post_detail', kwargs={'pk': self.object.id})
 
 
-class PostDeleteView(PostMixin, LoginRequiredMixin, DeleteView):
+class PostDeleteView(LoginRequiredMixin, PostMixin, DeleteView):
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
     success_url = reverse_lazy('blog:index')
@@ -128,12 +128,12 @@ class PostDeleteView(PostMixin, LoginRequiredMixin, DeleteView):
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        if request.user.is_authenticated:
-            self.note = get_object_or_404(
-                Post, pk=kwargs['post_id'], author=request.user
-            )
-        else:
-            return redirect('login')
+        # if request.user.is_authenticated:
+        self.note = get_object_or_404(
+            Post, pk=kwargs['post_id'], author=request.user
+        )
+        # else:
+        #     return redirect('login')
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -250,6 +250,8 @@ class ProfileUpdateView(ProfileMixin, LoginRequiredMixin, UpdateView):
     def dispatch(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
+        if not request.user.is_authenticated:
+            return redirect('login')
         self.profile = get_object_or_404(User, username=kwargs['username'])
         if self.profile != request.user:
             return redirect(
