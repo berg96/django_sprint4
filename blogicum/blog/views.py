@@ -1,6 +1,5 @@
 from typing import Any
 from django import http
-from django.core.paginator import Paginator
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
 from django.http import (
@@ -208,42 +207,42 @@ class CommentDeleteView(CommentMixin, LoginRequiredMixin, DeleteView):
 
 
 class ProfileMixin:
-    model = User
     slug_field = 'username'
     slug_url_kwarg = 'username'
     profile = None
 
 
-class ProfileDetailView(ProfileMixin, DetailView):
+class ProfileDetailView(ProfileMixin, ListView):
+    model = Post
     template_name = 'blog/profile.html'
+    paginate_by = 10
 
-    def get_object(self):
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
         self.profile = get_object_or_404(
             User, username=self.kwargs['username']
         )
-        return self.profile
+        return super().dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
-        context['profile'] = self.profile
-        page_obj = add_comment_count(
+    def get_queryset(self) -> QuerySet[Any]:
+        qs = add_comment_count(
             Post.objects.select_related(
                 'location', 'category', 'author'
             ).filter(author=self.profile)
         )
         if self.profile != self.request.user:
-            page_obj = published(page_obj)
-        context['page_obj'] = Paginator(
-            page_obj,
-            10,
-        ).get_page(self.request.GET.get('page'))
-        if not page_obj:
-            raise Http404("Страница не найдена")
+            qs = published(qs)
+        return qs
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['profile'] = self.profile
         return context
 
 
 class ProfileUpdateView(ProfileMixin, LoginRequiredMixin, UpdateView):
+    model = User
     form_class = UserUpdateForm
     template_name = 'blog/user.html'
 
