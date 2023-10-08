@@ -6,6 +6,7 @@ from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
+    HttpResponseForbidden,
     HttpResponseRedirect,
 )
 from django.shortcuts import redirect, get_object_or_404
@@ -253,8 +254,8 @@ class ProfileUpdateView(ProfileMixin, LoginRequiredMixin, UpdateView):
             return redirect('login')
         self.profile = get_object_or_404(User, username=kwargs['username'])
         if self.profile != request.user:
-            return redirect(
-                'blog:edit_profile_with_name', request.user.username
+            return HttpResponseForbidden(
+                "У вас нет доступа к этой странице. Ошибка 403."
             )
         return super().dispatch(request, *args, **kwargs)
 
