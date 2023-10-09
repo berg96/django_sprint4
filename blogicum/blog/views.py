@@ -6,7 +6,6 @@ from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
-    HttpResponseForbidden,
     HttpResponseRedirect,
 )
 from django.shortcuts import redirect, get_object_or_404, render
