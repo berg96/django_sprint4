@@ -9,7 +9,7 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseRedirect,
 )
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -242,27 +242,14 @@ class ProfileDetailView(ProfileMixin, ListView):
         return context
 
 
-class ProfileUpdateView(ProfileMixin, LoginRequiredMixin, UpdateView):
-    model = User
-    form_class = UserUpdateForm
-    template_name = 'blog/user.html'
-
-    def dispatch(
-        self, request: HttpRequest, *args: Any, **kwargs: Any
-    ) -> HttpResponse:
-        if not request.user.is_authenticated:
-            return redirect('login')
-        self.profile = get_object_or_404(User, username=kwargs['username'])
-        if self.profile != request.user:
-            return HttpResponseForbidden(
-                "У вас нет доступа к этой странице. Ошибка 403."
-            )
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self) -> str:
-        return reverse('blog:profile', args=(self.request.user.username,))
-
-
-class EditProfileRedirectView(LoginRequiredMixin, View):
+class ProfileEditView(LoginRequiredMixin, View):
     def get(self, request):
-        return redirect('blog:edit_profile_with_name', request.user.username)
+        form = UserUpdateForm(instance=request.user)
+        return render(request, 'blog/user.html', {'form': form})
+
+    def post(self, request):
+        form = UserUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('blog:profile', username=request.user.username)
+        return render(request, 'blog/user.html', {'form': form})

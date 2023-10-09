@@ -44,13 +44,8 @@ urlpatterns = [
     ),
     path(
         'profile/edit/',
-        views.EditProfileRedirectView.as_view(),
+        views.ProfileEditView.as_view(),
         name='edit_profile',
-    ),
-    path(
-        'profile/<slug:username>/edit/',
-        views.ProfileUpdateView.as_view(),
-        name='edit_profile_with_name',
     ),
     path(
         'profile/<slug:username>/',
