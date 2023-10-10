@@ -77,7 +77,7 @@ class PostDetailView(PostMixin, DetailView):
     def dispatch(
         self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
-        self.note = get_object_or_404(Post, pk=kwargs['pk'])
+        self.note = get_object_or_404(Post, pk=kwargs['post_id'])
         if self.note.author != request.user and not self.note.is_published:
             raise Http404("Страница не найдена")
         return super().dispatch(request, *args, **kwargs)
@@ -108,7 +108,7 @@ class PostUpdateView(PostMixin, LoginRequiredMixin, UpdateView):
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        post = get_object_or_404(Post, pk=kwargs['pk'])
+        post = get_object_or_404(Post, pk=kwargs['post_id'])
         if post.author != request.user:
             return HttpResponseRedirect(
                 reverse('blog:post_detail', kwargs={'pk': post.id})
@@ -154,7 +154,7 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
     ) -> http.HttpResponse:
-        self.note = get_object_or_404(Post, pk=kwargs['pk'])
+        self.note = get_object_or_404(Post, pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form: BaseModelForm) -> HttpResponse:

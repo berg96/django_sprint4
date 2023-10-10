@@ -12,13 +12,13 @@ urlpatterns = [
         name='category_posts',
     ),
     path(
-        'posts/<int:pk>/',
+        'posts/<int:post_id>/',
         views.PostDetailView.as_view(),
         name='post_detail',
     ),
     path('posts/create/', views.PostCreateView.as_view(), name='create_post'),
     path(
-        'posts/<int:pk>/edit/',
+        'posts/<int:post_id>/edit/',
         views.PostUpdateView.as_view(),
         name='edit_post',
     ),
@@ -28,7 +28,7 @@ urlpatterns = [
         name='delete_post',
     ),
     path(
-        'posts/<int:pk>/comment/',
+        'posts/<int:post_id>/comment/',
         views.CommentCreateView.as_view(),
         name='add_comment',
     ),
