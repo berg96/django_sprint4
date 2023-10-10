@@ -26,12 +26,12 @@ from .models import Category, Comment, Post, User
 from .utils import add_comment_count
 
 
-class IndexMixin:
+NUM_POST_PER_PAGE = 10
+
+
+class IndexListView(ListView):
     model = Post
-    paginate_by = 10
-
-
-class IndexListView(IndexMixin, ListView):
+    paginate_by = NUM_POST_PER_PAGE
     template_name = 'blog/index.html'
     queryset = add_comment_count(
         Post.objects.published().select_related(
@@ -40,7 +40,9 @@ class IndexListView(IndexMixin, ListView):
     )
 
 
-class CategoryListView(IndexMixin, ListView):
+class CategoryListView(ListView):
+    model = Post
+    paginate_by = NUM_POST_PER_PAGE
     template_name = 'blog/category.html'
     category = None
 
@@ -217,7 +219,7 @@ class ProfileMixin:
 class ProfileDetailView(ProfileMixin, ListView):
     model = Post
     template_name = 'blog/profile.html'
-    paginate_by = 10
+    paginate_by = NUM_POST_PER_PAGE
 
     def dispatch(
         self, request: HttpRequest, *args: Any, **kwargs: Any
