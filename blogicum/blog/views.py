@@ -2,7 +2,6 @@ from typing import Any
 
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import models
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.http import HttpResponse
