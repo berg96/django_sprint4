@@ -2,9 +2,8 @@ from typing import Any
 
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Model, Q
+from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.forms.models import BaseModelForm
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
