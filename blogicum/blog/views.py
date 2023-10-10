@@ -1,27 +1,19 @@
 from typing import Any
+
 from django import http
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm
-from django.http import (
-    Http404,
-    HttpRequest,
-    HttpResponse,
-    HttpResponseRedirect,
-)
-from django.shortcuts import redirect, get_object_or_404, render
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import (Http404, HttpRequest, HttpResponse,
+                         HttpResponseRedirect)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import (
-    ListView,
-    CreateView,
-    UpdateView,
-    DeleteView,
-    DetailView,
-)
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
-from .models import Post, Category, Comment, User
-from .forms import PostForm, CommentForm, UserUpdateForm
+from .forms import CommentForm, PostForm, UserUpdateForm
+from .models import Category, Comment, Post, User
 from .utils import add_comment_count
 
 
