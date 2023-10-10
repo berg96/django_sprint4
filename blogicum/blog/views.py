@@ -73,6 +73,7 @@ class PostMixin:
 
 class PostDetailView(PostMixin, DetailView):
     template_name = 'blog/detail.html'
+    pk_url_kwarg = 'post_id'
 
     def dispatch(
         self, request: HttpRequest, *args: Any, **kwargs: Any
@@ -111,12 +112,12 @@ class PostUpdateView(PostMixin, LoginRequiredMixin, UpdateView):
         post = get_object_or_404(Post, pk=kwargs['post_id'])
         if post.author != request.user:
             return HttpResponseRedirect(
-                reverse('blog:post_detail', kwargs={'pk': post.id})
+                reverse('blog:post_detail', kwargs={'post_id': post.id})
             )
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self) -> str:
-        return reverse('blog:post_detail', kwargs={'pk': self.object.id})
+        return reverse('blog:post_detail', kwargs={'post_id': self.object.id})
 
 
 class PostDeleteView(PostMixin, LoginRequiredMixin, DeleteView):
@@ -163,7 +164,7 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self) -> str:
-        return reverse('blog:post_detail', kwargs={'pk': self.note.pk})
+        return reverse('blog:post_detail', kwargs={'post_id': self.note.pk})
 
 
 class CommentUpdateView(CommentMixin, LoginRequiredMixin, UpdateView):
@@ -182,7 +183,7 @@ class CommentUpdateView(CommentMixin, LoginRequiredMixin, UpdateView):
 
     def get_success_url(self) -> str:
         return reverse(
-            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+            'blog:post_detail', kwargs={'post_id': self.kwargs['post_id']}
         )
 
 
@@ -202,7 +203,7 @@ class CommentDeleteView(CommentMixin, LoginRequiredMixin, DeleteView):
 
     def get_success_url(self) -> str:
         return reverse(
-            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+            'blog:post_detail', kwargs={'post_id': self.kwargs['post_id']}
         )
 
 
