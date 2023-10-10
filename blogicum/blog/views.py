@@ -2,6 +2,7 @@ from typing import Any
 
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import models
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.http import HttpResponse
@@ -140,13 +141,10 @@ class CommentMixin(LoginRequiredMixin):
 class CommentUpdDelMixin(CommentMixin):
     template_name = 'blog/comment.html'
 
-    def dispatch(
-        self, request: http.HttpRequest, *args: Any, **kwargs: Any
-    ) -> http.HttpResponse:
-        get_object_or_404(
-            Comment, pk=kwargs['comment_id'], author=request.user
+    def get_object(self) -> Comment:
+        return get_object_or_404(
+            Comment, pk=self.kwargs['comment_id'], author=self.request.user
         )
-        return super().dispatch(request, *args, **kwargs)
 
 
 class CommentCreateView(CommentMixin, CreateView):
