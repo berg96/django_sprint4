@@ -19,13 +19,10 @@ from django.views.generic import (
     DeleteView,
     DetailView,
 )
-from django.contrib.auth import get_user_model
 
-from .models import Post, Category, Comment
+from .models import Post, Category, Comment, User
 from .forms import PostForm, CommentForm, UserUpdateForm
 from .utils import published, add_comment_count
-
-User = get_user_model()
 
 
 class IndexMixin:

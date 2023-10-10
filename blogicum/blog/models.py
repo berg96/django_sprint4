@@ -123,3 +123,6 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
         ordering = ('created_at',)
         default_related_name = 'comments'
+
+    def __str__(self) -> str:
+        return f'{self.text[:20]}/{self.author.username[:20]}'
