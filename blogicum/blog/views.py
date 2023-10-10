@@ -22,7 +22,7 @@ from django.views.generic import (
 
 from .models import Post, Category, Comment, User
 from .forms import PostForm, CommentForm, UserUpdateForm
-from .utils import published, add_comment_count
+from .utils import add_comment_count
 
 
 class IndexMixin:
@@ -33,7 +33,9 @@ class IndexMixin:
 class IndexListView(IndexMixin, ListView):
     template_name = 'blog/index.html'
     queryset = add_comment_count(
-        Post.published().select_related('location', 'category', 'author')
+        Post.objects.published().select_related(
+            'location', 'category', 'author'
+        )
     )
 
 
@@ -51,7 +53,7 @@ class CategoryListView(IndexMixin, ListView):
 
     def get_queryset(self) -> QuerySet[Any]:
         return add_comment_count(
-            Post.published()
+            Post.objects.published()
             .select_related('location', 'category', 'author')
             .filter(category__slug=self.category.slug)
         )
@@ -102,6 +104,7 @@ class PostCreateView(PostMixin, LoginRequiredMixin, CreateView):
 
 class PostUpdateView(PostMixin, LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
 
     def dispatch(
         self, request: http.HttpRequest, *args: Any, **kwargs: Any
@@ -224,14 +227,18 @@ class ProfileDetailView(ProfileMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        qs = add_comment_count(
-            Post.objects.select_related(
-                'location', 'category', 'author'
-            ).filter(author=self.profile)
-        )
         if self.profile != self.request.user:
-            qs = published(qs)
-        return qs
+            return add_comment_count(
+                Post.objects.published()
+                .select_related('location', 'category', 'author')
+                .filter(author=self.profile)
+            )
+        else:
+            return add_comment_count(
+                Post.objects.select_related(
+                    'location', 'category', 'author'
+                ).filter(author=self.profile)
+            )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)

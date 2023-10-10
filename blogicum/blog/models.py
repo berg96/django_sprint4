@@ -3,7 +3,17 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db import models
 
+
 User = get_user_model()
+
+
+class PublishedQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=datetime.now(),
+        )
 
 
 class PublishedModel(models.Model):
@@ -19,6 +29,14 @@ class PublishedModel(models.Model):
     class Meta:
         abstract = True
 
+    def __str__(self) -> str:
+        formatted_date = self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        if self.is_published:
+            pub_or = 'Опубликовано'
+        else:
+            pub_or = 'Скрыто'
+        return f'{pub_or}|{formatted_date}'
+
 
 class Location(PublishedModel):
     name = models.CharField(max_length=256, verbose_name='Название места')
@@ -28,7 +46,7 @@ class Location(PublishedModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.name[:20]
+        return f'{self.name[:20]}|{super().__str__()}'
 
 
 class Category(PublishedModel):
@@ -48,7 +66,10 @@ class Category(PublishedModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return f'{self.title[:20]}/{self.slug[:20]}/{self.description[:20]}'
+        return (
+            f'{self.title[:20]}|{self.slug[:20]}|'
+            f'{self.description[:20]}|{super().__str__()}'
+        )
 
 
 class Post(PublishedModel):
@@ -79,6 +100,8 @@ class Post(PublishedModel):
     )
     image = models.ImageField('Фото', upload_to='posts_images', blank=True)
 
+    objects = PublishedQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
@@ -86,18 +109,12 @@ class Post(PublishedModel):
         default_related_name = 'posts'
 
     def __str__(self):
+        formatted_date = self.pub_date.strftime('%Y-%m-%d %H:%M:%S')
         return (
-            f'{self.title[:20]}/{self.text[:20]}/'
-            f'{self.author.username[:20]}'
-            f'/{self.location.name[:20]}/{self.category.title[:20]}'
-        )
-
-    @classmethod
-    def published(cls):
-        return cls.objects.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=datetime.now(),
+            f'{self.title[:20]}|{self.text[:20]}'
+            f'|{formatted_date}|{self.author.username[:20]}'
+            f'|{self.location.name[:20]}|{self.category.title[:20]}'
+            f'|{super().__str__()}'
         )
 
 
@@ -125,4 +142,8 @@ class Comment(models.Model):
         default_related_name = 'comments'
 
     def __str__(self) -> str:
-        return f'{self.text[:20]}/{self.author.username[:20]}'
+        formatted_date = self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        return (
+            f'{self.text[:20]}|{self.post.title[:20]}'
+            f'|{formatted_date}|{self.author.username[:20]}'
+        )
