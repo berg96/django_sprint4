@@ -11,4 +11,4 @@ def published(qs):
 
 
 def add_comment_count(qs):
-    return qs.annotate(comment_count=Count('comment')).order_by('-pub_date')
+    return qs.annotate(comment_count=Count('comments')).order_by('-pub_date')

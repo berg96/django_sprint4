@@ -85,7 +85,7 @@ class PostDetailView(PostMixin, DetailView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['form'] = CommentForm()
-        context['comments'] = self.note.comment.select_related('author')
+        context['comments'] = self.note.comments.select_related('author')
         return context
 
 
