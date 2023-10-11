@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models import Count
 
 User = get_user_model()
 
@@ -12,6 +13,11 @@ class PublishedQuerySet(models.QuerySet):
             is_published=True,
             category__is_published=True,
             pub_date__lte=datetime.now(),
+        )
+
+    def add_comment_count(self):
+        return self.annotate(comment_count=Count('comments')).order_by(
+            '-pub_date'
         )
 
 
@@ -29,12 +35,7 @@ class PublishedModel(models.Model):
         abstract = True
 
     def __str__(self) -> str:
-        formatted_date = self.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        if self.is_published:
-            pub_or = 'Опубликовано'
-        else:
-            pub_or = 'Скрыто'
-        return f'{pub_or}|{formatted_date}'
+        return f'{self.is_published=}|{self.created_at: %Y-%m-%d %H:%M:%S}'
 
 
 class Location(PublishedModel):
@@ -108,10 +109,9 @@ class Post(PublishedModel):
         default_related_name = 'posts'
 
     def __str__(self):
-        formatted_date = self.pub_date.strftime('%Y-%m-%d %H:%M:%S')
         return (
             f'{self.title[:20]}|{self.text[:20]}'
-            f'|{formatted_date}|{self.author.username[:20]}'
+            f'|{self.pub_date: %Y-%m-%d %H:%M:%S}|{self.author.username[:20]}'
             f'|{self.location.name[:20]}|{self.category.title[:20]}'
             f'|{super().__str__()}'
         )
@@ -141,8 +141,8 @@ class Comment(models.Model):
         default_related_name = 'comments'
 
     def __str__(self) -> str:
-        formatted_date = self.created_at.strftime('%Y-%m-%d %H:%M:%S')
         return (
             f'{self.text[:20]}|{self.post.title[:20]}'
-            f'|{formatted_date}|{self.author.username[:20]}'
+            f'|{self.created_at: %Y-%m-%d %H:%M:%S}'
+            f'|{self.author.username[:20]}'
         )

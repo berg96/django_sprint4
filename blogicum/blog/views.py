@@ -2,7 +2,6 @@ from typing import Any
 
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -17,7 +16,6 @@ from django.views.generic import (
 
 from .forms import CommentForm, PostForm, UserUpdateForm
 from .models import Category, Comment, Post, User
-from .utils import add_comment_count
 
 NUM_POST_PER_PAGE = 10
 
@@ -26,10 +24,10 @@ class IndexListView(ListView):
     model = Post
     paginate_by = NUM_POST_PER_PAGE
     template_name = 'blog/index.html'
-    queryset = add_comment_count(
-        Post.objects.published().select_related(
-            'location', 'category', 'author'
-        )
+    queryset = (
+        Post.objects.published()
+        .add_comment_count()
+        .select_related('location', 'category', 'author')
     )
 
 
@@ -44,16 +42,16 @@ class CategoryListView(ListView):
         )
 
     def get_queryset(self) -> QuerySet[Any]:
-        return add_comment_count(
+        return (
             self.get_category()
             .posts.published()
+            .add_comment_count()
             .select_related('location', 'category', 'author')
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         return dict(
-            **super().get_context_data(**kwargs),
-            **{'category': self.get_category()}
+            **super().get_context_data(**kwargs), category=self.get_category()
         )
 
 
@@ -80,25 +78,22 @@ class PostDetailView(PostFormMixin, DetailView):
     pk_url_kwarg = 'post_id'
 
     def get_object(self) -> Post:
-        if self.request.user.is_authenticated:
-            query = Q(is_published=True) | Q(author=self.request.user)
-        else:
-            query = Q(is_published=True)
-
         post = get_object_or_404(
             Post,
-            query,
             pk=self.kwargs['post_id'],
         )
-        return post
+        if post.author == self.request.user:
+            return post
+        return get_object_or_404(
+            Post.objects.published(),
+            pk=self.kwargs['post_id'],
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         return dict(
             **super().get_context_data(**kwargs),
-            **{
-                'form': CommentForm(),
-                'comments': self.object.comments.select_related('author'),
-            }
+            form=CommentForm(),
+            comments=self.object.comments.select_related('author'),
         )
 
 
@@ -124,7 +119,7 @@ class PostDeleteView(PostCheckAuthorMixin, DeleteView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         return dict(
             **super().get_context_data(**kwargs),
-            **{'form': PostForm(instance=self.object)}
+            form=PostForm(instance=self.object),
         )
 
 
@@ -147,6 +142,15 @@ class CommentUpdDelMixin(CommentMixin):
 
 
 class CommentCreateView(CommentMixin, CreateView):
+    template_name = 'blog/comment.html'
+
+    def dispatch(self, request, *args: Any, **kwargs: Any):
+        get_object_or_404(
+            Post.objects.published(),
+            pk=self.kwargs['post_id'],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form: CommentForm) -> HttpResponse:
         form.instance.author = self.request.user
         form.instance.post = get_object_or_404(
@@ -175,10 +179,10 @@ class ProfileDetailView(ListView):
         return get_object_or_404(User, username=self.kwargs['username'])
 
     def get_queryset(self) -> QuerySet[Any]:
-        qs = add_comment_count(
-            self.get_profile().posts.select_related(
-                'location', 'category', 'author'
-            )
+        qs = (
+            self.get_profile()
+            .posts.add_comment_count()
+            .select_related('location', 'category', 'author')
         )
         if self.get_profile() != self.request.user:
             return qs.published()
@@ -187,7 +191,7 @@ class ProfileDetailView(ListView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         return dict(
             **super().get_context_data(**kwargs),
-            **{'profile': self.get_profile()}
+            profile=self.get_profile(),
         )
 
 
